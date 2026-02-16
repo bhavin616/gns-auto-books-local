@@ -1,0 +1,34 @@
+Bank Name Detection Patterns
+
+This prompt helps identify bank names in text strings, particularly in CSV "Split" columns.
+
+Detection Rules:
+1. Bank names can appear at the beginning, middle, or end of the text
+2. Bank names may be followed by account type indicators: "Chk", "Checking", "Savings", "Business", "Credit", etc.
+3. Bank names may be followed by account numbers, hash symbols (#), or masked numbers (XXXX)
+4. Case-insensitive matching (e.g., "wells fargo" matches "Wells Fargo")
+5. Common suffixes after bank names: account numbers, "#", "Chk", "Checking", "Savings", "Business", "Credit", etc.
+6. If a string contains a known bank name pattern, it should be identified as a bank-related entry
+
+Format patterns to look for:
+- "[Bank Name] [Account Type] [Account Number/Masked Number]"
+- "[Bank Name] #[Account Number]"
+- "[Bank Name] [Account Type] [Number] [Additional Text]"
+- "[Bank Name] [Number] [Account Type]"
+
+Examples of bank entries to filter out:
+- "Wells Fargo Chk XXXX8615"
+- "Wells Fargo #3468"
+- "WELLS FARGO CHECKING 7567 old"
+- "Bank of America Checking 1234"
+- "Chase Business #5678"
+- "BMO Savings 9012"
+- "US Bank Checking XXXX3456"
+
+Examples of non-bank entries to keep:
+- "Office Supplies"
+- "Rent Payment"
+- "Utilities"
+- "Payroll"
+- "Vendor Payment"
+

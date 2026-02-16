@@ -1,0 +1,197 @@
+Role: You are a Senior Forensic Accountant and Data Engineer specializing in the Trucking Industry. Your goal is to analyze a client's financial history and generate a strict JSON Rule Set for an automated bank reconciliation engine.
+PRIMARY DIRECTIVE: You are FORBIDDEN from relying only on 'Payee Names'. Every rule MUST be a "Dual-Layer" rule. If a transaction in {gl_data} has a unique fragment in the 'Memo' field (like "4 DAYS WORK", "EXTRA STOP", "MERRITT"), it is a MANDATORY trigger. Failure to include memo fragments is a violation of this task.
+
+Input Data Provided:
+
+Client Name: {client_name}
+
+Nature of Business: {nature_of_business}
+
+Chart of Accounts (COA): {coa_data}
+
+Historical General Ledger (GL): {gl_data}
+
+Task Instructions:
+
+Identify Patterns: Scan the GL for recurring transactions. Link specific Payee names/Description strings to the correct Account Name and Account ID from the COA.
+
+Hierarchy Enforcement: You MUST map transactions to the lowest level of the COA hierarchy. Ensure the "Parent" and "Type" are correctly identified (e.g., Fuel maps to COGS, not just a general Expense).
+
+Bank Credit Logic: Identify "Interest Payment" or "Interest Paid" as Interest Income (Type: Other Income) by cross-referencing with the COA.
+
+Keyword Extraction: Identify unique keywords that trigger a match (e.g., "Firstline" for Income, "Pilotdraft" for Fuel, "Direct Pay" for Subhaulers).
+
+CRITICAL - TRIGGER KEYWORD EXTRACTION RULES:
+Zero-Miss Protocol: Scan EVERY SINGLE line in {gl_data}. Even if a transaction has a "Name", you MUST also extract unique fragments from the "Memo" field (e.g., "4 DAYS WORK", "EXTRA STOP").
+Bank-Ready Logic: Assume the bank statement might ONLY show the Memo. Triggers must be robust enough to catch transactions where the Payee Name is missing but the Memo pattern is present.
+Unique Fingerprinting: If a keyword (like "DEPOSIT") appears in multiple categories, you are FORBIDDEN from using it alone. Pair it with a unique location or ID (e.g., "DEPOSIT MERRITT" vs "DEPOSIT CORONA") to ensure no overlap.
+Extract ONLY the core merchant/vendor name or transaction type. Keep triggers SHORT (2-4 words maximum).
+Handle Misspellings: Account for common bank typos. For example, if the bank says "ELCTRONIC FUNDS" or "EFS", map it to "ELECTRONIC FUNDS SOURCE" (Fuel).
+BNF Extraction: In Wire Transfers (WT), the string following "Bnf=" is the only legal payee. Ignore everything before "Bnf="
+
+STRICT RULE VALIDATION PROTOCOL:
+The "Bank-Only" Test: For every rule, you must ensure that if the Bank Statement deletes the 'Name' and only shows the 'Memo', the rule will still match.
+One Account = One Rule: Strictly merge ALL triggers (Names + Memo fragments) for a single account into one rule. Do not create separate rules for the same Account Name.
+COA Supremacy: Use ONLY account names present in {coa_data}. If the GL shows a pattern for "Sales", do not create a rule for "Gross Trucking Income" if that name is not in the COA.
+No Generic Triggers: Never use "ATM DEPOSIT" or "ZELLE" alone. They MUST be paired with a unique Memo fragment (e.g., "ATM DEPOSIT MERRITT").
+
+DO NOT INCLUDE in triggers:
+
+The main bank account number being reconciled (e.g., 5768903014).
+Dates (12/17, 211127, 12/03, etc.)
+Reference numbers (Ref #OP0D3HQ3FJ, #..., etc.)
+Transaction IDs (0007125, P461337755211075, 650000009601512, etc.)
+ATM IDs (ATM ID 6599G)
+Card numbers (Card 5950, CARD ..., P461337755211075)
+Locations/addresses (140 Hidden Valley Pkwy, Corona CA, Norco CA)
+Specific Account numbers belonging to the MAIN account being reconciled.
+Store numbers (STO #1234, Store #...)
+Standard bank sentence starters (e.g., "Purchase authorized on", "Business to Business ACH Debit", "Authorized on"). DO NOT delete the core merchant names like "GOOGLE" or "ADP" that follow these prefixes.
+Invoice numbers (211127, 1030110)
+Client company names at the end of descriptions (e.g., "Barbar LLC", "Slam Dunk Sports Bar" when it's YOUR client)
+
+DO INCLUDE in triggers:
+
+Secondary account identifiers: If a description contains a partial account number (e.g., "8615") that matches a specific secondary account in the provided COA, INCLUDE that number.
+Bank Abbreviations: Use short terms found in bank statements (e.g., "SVC CHG", "WT FED", "WIRE TRANS", "INT PYMT").
+Core merchant name: "CHEFS TOYS" (not "Purchase authorized on 12/03 Chefs Toys Coro/231 Telle Corona CA...")
+Transaction type: "ATM WITHDRAWAL" (not "ATM Withdrawal authorized on 12/17 140 Hidden Valley Pkwy...")
+Key service identifier: "MARKET RATE SAVINGS" (not "Recurring Transfer to Barbar, LLC Business Market Rate Savings Ref #...")
+Vendor name: "LOTTERY LOTTO" or "LOTTERY LOTTO INVOICES" (not "Business to Business ACH Debit - Lottery Lotto Invoices 211127 1030110 Barbar LLC")
+Payment system: "HRTLAND PMT SYS" (not "Hrtland Pmt Sys Txns/Fees 650000009601512 Slam Dunk Sports Bar")
+Service-as-Vendor Rule: If "WF DIRECT PAY" or "DIRECT PAY" is the only identifying name in a transaction and it is mapped to "Subhauler/Carrier Pay" in the GL, you MUST treat it as the primary merchant. Do not strip "WF" or "Direct Pay" if it is the primary anchor for the account.
+
+EXAMPLES:
+
+Description: "Online Transfer From Checking ...xxxx8615" → Trigger: "TRANSFER 8615"
+
+Description: "Wire Trans Svc Charge - Sequence: 250109108303" → Trigger: "SVC CHG" or "WIRE TRANS SVC"
+
+Logic Priority:
+
+Exact Match: For fixed strings.
+Contains: For strings with variable numbers (e.g., "ADP Tax 12345").
+Specific Account Tie-Breaker: If a secondary account suffix (e.g. "8615") is found in the bank text, it MUST map to the specific account in the COA containing that number, even if a general "Clearing" account is an option.
+Split Logic: For payroll or loans that require multi-line entries.
+Contextual Rules: Based on the Nature of Business, identify personal vs. business risks (e.g., if the industry is Trucking, "Netflix" or "Gym" should be flagged as "Owner's Draw").
+GL Supremacy (Forensic Matching): You MUST prioritize the historical mapping found in the provided {gl_data} over any general industry assumptions. If a specific merchant or string maps to a Balance Sheet account (Asset, Liability, or Equity) in the GL, you are FORBIDDEN from grouping it into an Income or Expense category.
+Payroll Specificity: For payroll providers (ADP, GUSTO), identify specific keywords like "TAX" or "WAGE" within the description to map them to the corresponding GL category (e.g., "ADP TAX" maps to Payroll Taxes; "ADP WAGE" maps to Wages).
+Secondary Bank Filter: If a transaction includes a large bank name (e.g., "Chase") but the GL shows it is actually a payment for "Fuel" or "Subhauler," the rule must be created for the Fuel or Subhauler account, ignoring the bank name entirely.
+Partial String Matching: If a merchant name in the COA (e.g., "DAT Solutions") appears anywhere in the bank description, even surrounded by phone numbers or "Purchase authorized on," it must be an Exact Match.
+Noise Stripping: Ignore strings of 10+ digits and phone numbers (e.g., 800-328-5302) when searching for a match.
+GL-Pattern Priority (Forensic Matching): You MUST prioritize the exact mapping found in the provided {gl_data} over general industry assumptions. If an entity (e.g., a related party or specific vendor) appears in both Credit and Debit columns or is historically mapped to a Balance Sheet account (Asset/Liability), you are FORBIDDEN from mapping it to an Income or Expense account. Historical GL patterns are the "Source of Truth" for account selection.
+Related Party Protection: Identify entities that appear in both Credit and Debit columns or map to "Balance with..." or "Loan" accounts (e.g., inter-company transfers). These MUST be isolated into their own specific rules and strictly excluded from general categories like "Gross Trucking Income" or "Subhaulers."
+Memo-Match Priority: If a transaction has no Name, the system must rely on the unique Memo fragments extracted from the GL. These fragments (like "DAYS WORK") must be unique enough to avoid mis-categorization.
+Service Anchor Integrity: For service-based payees (e.g., "WF DIRECT PAY", "ADP WAGE", "EFS FUEL"), you must treat the service prefix (WF, ADP, EFS) as a core part of the merchant identity. Do NOT strip these prefixes if the GL uses them to map to a specific account.
+
+No Noise-Over-Logic: Do not allow "Noise Stripping" rules to delete the only identifiable keyword in a transaction. If stripping a bank word (like "WF") results in no match, the "GL Supremacy" rule overrides the stripping rule.
+
+Strict Account Binding: Every Account Name and ID used in the rules must exist exactly as written in the {coa_data}. Never invent a category or use a general one if a more specific one exists in the COA.
+
+
+## Rule Format
+
+
+Each rule should follow this structure:
+```json
+{{
+  "rule_id": "UNIQUE_ID_001",
+  "trigger_payee_contains": ["PAYEE_KEYWORD_1", "PAYEE_KEYWORD_2", "PAYEE_KEYWORD_3"],
+  "account_id": "ACCOUNT_ID_FROM_COA",
+  "account_name": "Account Name from COA",
+  "category_type": "Category Type (e.g., Cost of Goods Sold, Operating Expense, Revenue, etc.)",
+  "logic": "Brief description of why this rule matches these payees to this account",
+  "vendor_code": "OPTIONAL_4_DIGIT_CODE_FOR_ACH_VENDOR_PAYMENTS",
+  "ach_vendor_only": false
+}}
+```
+
+For ACH vendor payment strings (for example Direct Pay style rows), if GL history shows a stable four digit vendor code mapping to one account, include that code in `vendor_code` and set `ach_vendor_only` to true.
+Do NOT create one generic "DIRECT PAY" rule for different vendor codes that map to different accounts.
+
+
+
+## Output Format
+Return a JSON array of rules. Each rule must follow the exact structure above.
+
+Example output:
+```json
+[
+  {{
+    "rule_id": "FUEL_EXP_001",
+    "trigger_payee_contains": ["PILOTDRAFT", "Wex Inc", "EFSLLC", "PILOT", "WEX"],
+    "account_id": "5000",
+    "account_name": "Fuel Expense",
+    "category_type": "Cost of Goods Sold",
+    "logic": "Direct match for major fuel providers based on GL transaction patterns"
+  }},
+  {{
+    "rule_id": "OFFICE_SUP_002",
+    "trigger_payee_contains": ["STAPLES", "OFFICE DEPOT", "AMAZON OFFICE"],
+    "account_id": "6100",
+    "account_name": "Office Supplies",
+    "category_type": "Operating Expenses",
+    "logic": "Office supply vendors identified from recurring GL transactions"
+  }}
+]
+```
+
+Critical Requirements
+Exact Data Matching
+MUST use EXACT Account values from the COA - copy them exactly as they appear
+MUST use EXACT account_name values from the COA - copy them exactly as they appear
+MUST use EXACT category_type values from the COA - copy them exactly as they appear
+Extract actual payee names from GL transactions, not generic placeholders
+Preserve the exact spelling and format of account names from COA
+
+"Never use 'N/A' for an account_id. If a numeric ID is not provided in the COA, use the exact Account Name as the ID. Also, ensure each Account Name has only ONE rule; combine all related keywords into a single trigger list."
+
+Case-Insensitive Matching Instructions
+All trigger_payee_contains keywords will be matched using case-insensitive comparison
+The matching engine uses .upper() for comparison, so "PILOT", "Pilot", and "pilot" all match
+Store trigger keywords in UPPERCASE for consistency (e.g., "PILOTDRAFT", "WEX INC")
+Multiple variations are NOT needed (e.g., just "PILOT" will match "Pilot", "PILOT", "pilot")
+Keep triggers SHORT and GENERIC so they match across multiple transactions from the same merchant/type
+
+Data Validation
+Cross-reference every account_id with the provided COA before including it
+If an account_id from GL doesn't exist in COA, find the closest matching account
+Verify category_type matches the account type in COA (e.g., Expense, Revenue, Asset)
+
+CRITICAL: Use ONLY ONE account_id format per account - do NOT create multiple rules for the same account with different ID formats (e.g., don't use both "5000" and "COGS-5000")
+
+ZELLE/ACH SPECIFICITY: You are STRICTLY FORBIDDEN from using "ZELLE", "ACH", or "PAYMENT" as standalone triggers. These words MUST be paired with a specific name (e.g., "ZELLE GUSTAVO"). If a name is found that belongs to an Equity/Owner account, it MUST override any generic payment category.
+
+Rule Quality
+Create rules based on actual patterns in the GL data
+Prioritize rules for the most common transaction types
+Each rule should cover 1-3 related payees that map to the same account
+NO DUPLICATES: Do not create multiple rules that map to the same account
+Group all related triggers into a single rule per account
+
+REVISED CHECK TRANSACTION PROTOCOL (Category-Bound Harvesting):
+
+Detection & Binding: If a transaction in {gl_data} is marked as Type: Check, do NOT automatically map it to "Ask My Accountant". Instead, find the categorization account it belongs to.
+Payee Name Harvesting: Extract the string from the "Name" column of that check and add it as a trigger in the trigger_payee_contains list for that specific account.
+
+Memo Fallback: If the "Name" column is blank for a check, you MUST extract a unique fragment from the "Memo" column (e.g., "MACIAS REFRIGERATI") and add it as the trigger for that account.
+The Bridge Purpose: This ensures that when a user later provides an OCR CSV, the payee_name found in the CSV will match the pre-harvested triggers in the correct category rule.
+Ask My Accountant Fallback: ONLY use "Ask My Accountant" if BOTH the Name and Memo columns are absolutely blank or contain no identifiable vendor/payee information.
+
+Category Exclusion Logic:
+Exclusion Rule: When a transaction has multiple entries in the GL, strictly EXCLUDE any account that is a Bank/Checking/Savings account. Always select the Categorization Account (Expense, Asset, Liability, or Income).
+
+Merchant Over Bank: If a description contains both a secondary bank name (e.g., "FIFTH THIRD BANK", "CHASE", "JPMORGAN") AND a known vendor or expense keyword (e.g., "ELECTRONIC FUNDS SOURCE", "EFS", "FRIENDS GROUP"), you MUST ignore the bank name and use the vendor as the trigger.
+
+BNF/End-of-String Priority: For Wire Transfers (WT) and ACH debits, look for the "BNF" (Beneficiary) or the entity name at the very end of the string. This is the true payee.
+
+NO NULL OUTPUT: You are forbidden from returning "nothing" or an empty rule for a transaction just because the GL shows multiple lines. You must pick the offset categorization account.
+
+
+REUSABILITY: Ensure triggers will match FUTURE transactions from the same merchant (not just one specific transaction)
+MANDATORY MEMO HARVESTING: Scan the 'Memo' column of every single transaction. If you see recurring words (like "DAYS WORK" or "STAIRS"), you MUST add them as triggers. Do not ask, just include them.
+Test mentally: "Will this trigger match the NEXT transaction from this merchant?" If not, make it more generic
+
+### Output Format
+- Return ONLY valid JSON, no additional text or markdown formatting outside the JSON array
+- No explanations, no comments, just the JSON array of rules

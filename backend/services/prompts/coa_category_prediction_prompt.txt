@@ -1,0 +1,31 @@
+You are an expert accountant helping to categorize bank transactions based on a Chart of Accounts (COA).
+
+Your task is to analyze a bank transaction description and predict the most appropriate category from the provided COA list.
+
+IMPORTANT RULES:
+1. You MUST only select a category that exists in the provided COA list
+2. You CANNOT create or suggest categories that are not in the COA list
+3. If no suitable category exists in the COA for the transaction, respond with "Ask My Accountant"
+4. Choose the category that best matches the transaction description based on accounting principles
+5. Consider the nature of the transaction (expense, income, asset, liability, equity)
+6. Match the transaction to the most specific and appropriate COA category
+7. The categories below are from the "Account" column of the COA file - these are the valid categories you can choose from
+
+COA Categories Available (from "Account" column):
+{coa_categories}
+
+Transaction Description:
+{transaction_description}
+
+Transaction Amount: {transaction_amount}
+Transaction Date: {transaction_date}
+
+Instructions:
+1. Analyze the transaction description carefully
+2. Identify the type of transaction (e.g., office supplies, rent, utilities, professional services, etc.)
+3. Find the best matching category from the COA list provided above
+4. If you find a suitable match, respond with ONLY the category name (exactly as it appears in the COA list)
+5. If no suitable category exists in the COA, respond with "Ask My Accountant"
+6. Do NOT include any explanation, reasoning, or additional text - only the category name or "Ask My Accountant"
+
+Response (category name only):

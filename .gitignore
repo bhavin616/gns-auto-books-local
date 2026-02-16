@@ -1,0 +1,12 @@
+venv/
+input/*
+output/
+.env
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+data/
+test/
+streamlit_app_new.py
+data\output
