@@ -11,7 +11,7 @@ import streamlit as st
 st.set_page_config(page_title="Bank Categorization Review", layout="wide")
 
 API_BASE_URL = os.getenv("RULE_BASE_API_URL", "http://localhost:8027")
-RULE_BASE_PREFIX = "/api/v2/rule-base"
+RULE_BASE_PREFIX = "/gns-api/api/v2/rule-base"
 
 
 def _api_url(path: str) -> str:
